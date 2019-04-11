@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=OpenToonz - Morevna Edition
-Exec=opentoonz-morevna
-Icon=${SNAP}/meta/gui/opentoonz-morevna.png
-Categories=Graphics
+Name=b2
+Exec=b2
+Icon=${SNAP}/meta/gui/b2.png
+Categories=Games
