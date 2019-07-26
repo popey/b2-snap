@@ -58,7 +58,6 @@ parts:
   b2:
     plugin: make
     source: https://github.com/tom-seddon/b2.git
-    source-branch: build
     override-build: |
       set -x
       git checkout build
