@@ -60,7 +60,6 @@ parts:
     source: https://github.com/tom-seddon/b2.git
     override-build: |
       set -x
-      git checkout build
       git submodule init
       git submodule update
       sed -i 's|RMT_ENABLED=1|RMT_ENABLED=0|g' submodules/CMakeLists.txt
