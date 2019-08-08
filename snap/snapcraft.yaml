@@ -373,19 +373,6 @@ parts:
       - -usr/share/doc
       - -usr/share/man
 
-  ffmpeg-wrapper:
-    plugin: dump
-    source: files
-    stage-packages:
-      - mesa-utils
-    organize:
-      'ffplay': bin/
-      'ffmpeg': bin/
-      'ffprobe': bin/
-      'wrapper': bin/
-    after:
-      - ffmpeg
-
   desktop-gtk2:
     build-packages:
       - build-essential
