@@ -72,7 +72,7 @@ parts:
       git submodule update
       sed -i 's|RMT_ENABLED=1|RMT_ENABLED=0|g' submodules/CMakeLists.txt
       make init
-      snapcraftctl set-version "$(git describe --tags | awk -F '-' '{ print $2-$3 }')"
+      snapcraftctl set-version "$(git describe --tags | cut -d- -f2-4 )"
       cd build/r.linux
       ninja
       cp ./src/b2/b2 $SNAPCRAFT_PART_INSTALL
