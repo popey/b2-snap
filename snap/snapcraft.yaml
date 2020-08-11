@@ -52,6 +52,8 @@ parts:
   snapcraft-preload:
     source: https://github.com/sergiusens/snapcraft-preload.git
     plugin: cmake
+    build-environment:
+      - PATH: /snap/bin:$PATH
     build-snaps:
       - cmake/latest/stable
     stage-packages:
@@ -82,6 +84,8 @@ parts:
       mkdir -p $SNAPCRAFT_PART_INSTALL/share/icons
     build-snaps:
       - cmake/latest/stable
+    build-environment:
+      - PATH: /snap/bin:$PATH
     stage-packages:
       - libasn1-8-heimdal
       - libcurl3-gnutls
