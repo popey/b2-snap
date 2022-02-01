@@ -1,5 +1,5 @@
 name: b2
-base: core18 # the base snap is the execution environment for this snap
+base: core20
 adopt-info: b2
 summary: b2 BBC Micro Emulator
 description: |
@@ -14,7 +14,8 @@ architectures:
 
 apps:
   b2:
-    command: desktop-launch snapcraft-preload $SNAP/b2
+    command: b2
+    extensions: [gnome-3-38]
     environment:
       LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH"
       GTK_PATH: $SNAP/lib/gtk-2.0
@@ -34,38 +35,22 @@ apps:
       - removable-media
       - mount-observe
 
-plugs:
-  gtk-2-engines:
-    interface: content
-    target: $SNAP/lib/gtk-2.0
-    default-provider: gtk-common-themes:gtk-2-engines
-  gtk-2-themes:
-    interface: content
-    target: $SNAP/share/themes
-    default-provider: gtk-common-themes:gtk-2-themes
-  icon-themes:
-    interface: content
-    target: $SNAP/share/icons
-    default-provider: gtk-common-themes:icon-themes
-
 parts:
-  snapcraft-preload:
-    source: https://github.com/sergiusens/snapcraft-preload.git
-    plugin: cmake
-    build-environment:
-      - PATH: /snap/bin:$PATH
-    build-snaps:
-      - cmake/latest/stable
-    stage-packages:
-      - on amd64:
-        - lib32stdc++6
-    build-packages:
-      - on amd64:
-        - gcc-multilib
-        - g++-multilib 
+  # snapcraft-preload:
+  #   source: https://github.com/sergiusens/snapcraft-preload.git
+  #   plugin: cmake
+  #   build-environment:
+  #     - PATH: /snap/bin:$PATH
+  #   build-snaps:
+  #     - cmake/latest/stable
+  #   stage-packages:
+  #     - on amd64:
+  #       - lib32stdc++6
+  #   build-packages:
+  #     - on amd64:
+  #       - gcc-multilib
+  #       - g++-multilib 
   b2:
-    stage-snaps:
-      - ffmpeg/latest/stable
     plugin: make
     source: https://github.com/tom-seddon/b2.git
     override-build: |
@@ -85,11 +70,17 @@ parts:
     build-snaps:
       - cmake/latest/stable
     build-environment:
-      - PATH: /snap/bin:$PATH
+      - PATH: /snap/bin:$PATH 
     stage-packages:
+      - ffmpeg
       - libasn1-8-heimdal
+      - libatk1.0-0
+      - libbrotli1
       - libcurl3-gnutls
+      - libdatrie1
+      - libgdk-pixbuf2.0-0
       - libgssapi3-heimdal
+      - libgtk2.0-0
       - libhcrypto4-heimdal
       - libheimbase1-heimdal
       - libheimntlm0-heimdal
@@ -97,114 +88,21 @@ parts:
       - libkrb5-26-heimdal
       - libldap-2.4-2
       - libnghttp2-14
+      - libopengl0
+      - libpango-1.0-0
+      - libpangocairo-1.0-0
+      - libpangoft2-1.0-0
       - libpsl5
       - libroken18-heimdal
       - librtmp1
       - libsasl2-2
+      - libssh-4
+      - libthai0
       - libwind0-heimdal
-      - libatk1.0-0
-      - libblkid1  
-      - libbluray2 
-      - libbsd0
-      - libbz2-1.0  
-      - libcairo2  
-      - libchromaprint1
-      - libcom-err2   
-      - libcroco3          
-      - libcrystalhd3    
-      - libdatrie1
-      - libdrm2      
-      - libexpat1  
-      - libffi6     
-      - libfontconfig1
-      - libfreetype6
-      - libgcc1     
-      - libgcrypt20 
-      - libgdk-pixbuf2.0-0
-      - libglib2.0-0   
+      - libxcomposite1
+      - libfribidi0
       - libgl1-mesa-dri
       - libgl1-mesa-glx
-      - libgme0  
-      - libgmp10
-      - libgnutls30
-      - libgomp1
-      - libgpg-error0
-      - libgraphite2-3
-      - libgsm1
-      - libgssapi-krb5-2
-      - libgtk2.0-0
-      - libharfbuzz0b
-      - libhogweed4
-      - libicu60
-      - libidn2-0
-      - libk5crypto3
-      - libkeyutils1
-      - libkrb5-3
-      - libkrb5support0
-      - liblzma5
-      - libmount1
-      - libmp3lame0
-      - libmpg123-0
-      - libnettle6
-      - libnuma1
-      - libogg0
-      - libopenjp2-7
-      - libopenmpt0
-      - libopus0
-      - libp11-kit0
-      - libpango-1.0-0
-      - libpangocairo-1.0-0
-      - libpangoft2-1.0-0
-      - libpcre3
-      - libpixman-1-0
-      - libpng16-16
-      - libpulse0
-      - librsvg2-2
-      - libselinux1
-      - libshine3
-      - libsnappy1v5
-      - libsoxr0
-      - libspeex1
-      - libssh-gcrypt-4
-      - libstdc++6
-      - libtasn1-6
-      - libthai0
-      - libtheora0
-      - libtwolame0
-      - libunistring2
-      - libuuid1
-      - libva2
-      - libva-drm2
-      - libva-x11-2
-      - libvdpau1
-      - libvorbis0a
-      - libvorbisenc2
-      - libvorbisfile3
-      - libvpx5
-      - libwavpack1
-      - libwebp6
-      - libwebpmux3
-      - libx11-6
-      - libx264-152
-      - libx265-146
-      - libxau6
-      - libxcb1
-      - libxcb-render0
-      - libxcb-shm0
-      - libxcomposite1
-      - libxcursor1
-      - libxdamage1
-      - libxdmcp6
-      - libxext6
-      - libxfixes3
-      - libxi6
-      - libxinerama1
-      - libxml2
-      - libxrandr2
-      - libxrender1
-      - libxvidcore4
-      - libzvbi0
-      - zlib1g
     build-packages:
       - libcurl4-gnutls-dev
       - uuid-dev
@@ -216,30 +114,4 @@ parts:
       - ffmpeg
       - ninja-build
       - build-essential
-  desktop-gtk2:
-    build-packages:
-      - build-essential
-      - libgtk2.0-dev
-    make-parameters:
-      - FLAVOR=gtk2
-    plugin: make
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: gtk
-    stage-packages:
-      #- libxkbcommon0
-      - ttf-ubuntu-font-family
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libgtk2.0-0
-      - libgdk-pixbuf2.0-0
-      - libglib2.0-bin
-      - libgtk2.0-bin
-      - unity-gtk2-module
-      - locales-all
-      - libappindicator1
-      - xdg-user-dirs
-      - ibus-gtk
-      - libibus-1.0-5
+
