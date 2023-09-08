@@ -72,6 +72,16 @@ parts:
     build-environment:
       - PATH: /snap/bin:$PATH 
     stage-packages:
+      - libuv1
+      - libglx-mesa0
+      - libbrotli1
+      - libcaca0
+      - libtheora0
+      - libgssapi-krb5-2
+      - libicu70
+      - libsphinxbase3
+      - libmfx1
+      - libcurl4
       - ffmpeg
       - libasn1-8-heimdal
       - libatk1.0-0
@@ -86,7 +96,7 @@ parts:
       - libheimntlm0-heimdal
       - libhx509-5-heimdal
       - libkrb5-26-heimdal
-      - libldap-2.4-2
+      - libldap-2.5-0
       - libnghttp2-14
       - libopengl0
       - libpango-1.0-0
@@ -114,4 +124,7 @@ parts:
       - ffmpeg
       - ninja-build
       - build-essential
+      - libsdl2-dev
+      - libsdl2-net-dev
+      - libuv1-dev
 
