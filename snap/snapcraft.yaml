@@ -1,5 +1,5 @@
 name: b2
-base: core20
+base: core22
 adopt-info: b2
 summary: b2 BBC Micro Emulator
 description: |
@@ -15,7 +15,7 @@ architectures:
 apps:
   b2:
     command: b2
-    extensions: [gnome-3-38]
+    extensions: [gnome]
     environment:
       LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH"
       GTK_PATH: $SNAP/lib/gtk-2.0
