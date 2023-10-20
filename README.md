@@ -1,6 +1,7 @@
 # b2-snap
 Snap of b2 - the BBC Micro Emulator
 
+[![b2](https://github.com/popey/b2-snap/actions/workflows/test-snap-can-build.yml/badge.svg)](https://github.com/popey/b2-snap/actions)
 [![b2](https://snapcraft.io/b2/badge.svg)](https://snapcraft.io/b2)
 [![b2](https://snapcraft.io/b2/trending.svg?name=0)](https://snapcraft.io/b2)
 
