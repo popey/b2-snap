@@ -1,22 +1,20 @@
 name: b2
-base: core22
+base: core24
 adopt-info: b2
 summary: b2 BBC Micro Emulator
 description: |
-  A cross-platform BBC Micro emulator. Use your Linux PC to play your old 
+  A cross-platform BBC Micro emulator. Use your Linux PC to play your old
   BBC games or develop new BBC software..
 
 grade: stable
 confinement: strict
 
-architectures:
-  - build-on: amd64
 
 compression: lzo
 
 layout:
-  /usr/share/drirc.d:
-    bind: $SNAP/usr/share/drirc.d
+#  /usr/share/drirc.d:
+#    bind: $SNAP/usr/share/drirc.d
   /usr/lib/x86_64-linux-gnu/dri:
     bind: $SNAP/usr/lib/x86_64-linux-gnu/dri
   /usr/share/vulkan:
@@ -70,24 +68,30 @@ parts:
   b2:
     plugin: make
     source: https://github.com/tom-seddon/b2.git
+    override-pull: |
+      craftctl default
+      head -n5 src/b2/misc.cpp
+      # Insert #include <limits> to the top of the src/b2/misc.cpp file to fix build error
+      sed -i '1i#include <limits>' src/b2/misc.cpp
+      head -n5 src/b2/misc.cpp
     override-build: |
       set -x
       git submodule init
       git submodule update
       sed -i 's|RMT_ENABLED=1|RMT_ENABLED=0|g' submodules/CMakeLists.txt
       make init
-      snapcraftctl set-version "$(git describe --tags | cut -d- -f2-4 )"
+      craftctl set version=$(git describe --tags | cut -d- -f2-4 )
       cd build/r.linux
       ninja
-      cp ./src/b2/b2 $SNAPCRAFT_PART_INSTALL
+      cp ./src/b2/b2 $CRAFT_PART_INSTALL
       cp -a ./src/b2/assets $SNAPCRAFT_PART_INSTALL
-      mkdir -p $SNAPCRAFT_PART_INSTALL/lib/gtk-2.0
-      mkdir -p $SNAPCRAFT_PART_INSTALL/share/themes
-      mkdir -p $SNAPCRAFT_PART_INSTALL/share/icons
+      mkdir -p $CRAFT_PART_INSTALL/lib/gtk-2.0
+      mkdir -p $CRAFT_PART_INSTALL/share/themes
+      mkdir -p $CRAFT_PART_INSTALL/share/icons
     build-snaps:
       - cmake/latest/stable
     build-environment:
-      - PATH: /snap/bin:$PATH 
+      - PATH: /snap/bin:$PATH
     stage-packages:
       - libuv1
       - libglx-mesa0
@@ -95,7 +99,7 @@ parts:
       # - libcaca0
       # - libtheora0
       - libgssapi-krb5-2
-      - libicu70
+      - libicu74
       - libsphinxbase3
       # - libmfx1
       - libcurl4
@@ -108,19 +112,19 @@ parts:
       - libgdk-pixbuf2.0-0
       # - libgssapi3-heimdal
       - libgtk2.0-0
-      - libhcrypto4-heimdal
+      - libhcrypto5t64-heimdal
       - libheimbase1-heimdal
       - libheimntlm0-heimdal
       - libhx509-5-heimdal
       - libkrb5-26-heimdal
-      - libldap-2.5-0
+      - libldap2
       - libnghttp2-14
       - libopengl0
       - libpango-1.0-0
       - libpangocairo-1.0-0
       - libpangoft2-1.0-0
       - libpsl5
-      - libroken18-heimdal
+      - libroken19t64-heimdal
       - librtmp1
       - libsasl2-2
       - libssh-4
@@ -128,8 +132,7 @@ parts:
       - libwind0-heimdal
       - libxcomposite1
       - libfribidi0
-      - libgl1-mesa-dri
-      - libgl1-mesa-glx
+      - libglx-mesa0
       # - mesa-va-drivers
       - libsdl2-2.0-0
     build-packages:
@@ -147,15 +150,3 @@ parts:
       - libsdl2-net-dev
       - libuv1-dev
 
-
-  cleanup:
-    after: [ b2 ]
-    plugin: nil
-    build-snaps:  [core22]
-    override-prime: |
-      set -eux
-      for snap in "core22"; do
-          cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$SNAPCRAFT_PRIME/{}" \;
-      done
-      cd /snap/gnome-42-2204/current
-      find . -type f,l -exec rm -f $SNAPCRAFT_PRIME/{} \;
