@@ -32,7 +32,7 @@ apps:
       GTK_PATH: $SNAP/lib/gtk-4.0
       GTK_DATA_PREFIX: $SNAP
       XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS
-      VK_ICD_FILENAMESr: /var/lib/snapd/lib/vulkan/icd.d/nvidia_icd.json:$SNAP/usr/share/vulkan/icd.d/radeon_icd.$SNAP_ARCH.json:$SNAP/usr/share/vulkan/icd.d/intel_icd.$SNAP_ARCH.json
+      VK_ICD_FILENAMES: /var/lib/snapd/lib/vulkan/icd.d/nvidia_icd.json:$SNAP/usr/share/vulkan/icd.d/radeon_icd.$SNAP_ARCH.json:$SNAP/usr/share/vulkan/icd.d/intel_icd.$SNAP_ARCH.json
     plugs:
       - opengl
       - audio-playback
