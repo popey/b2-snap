@@ -90,6 +90,7 @@ parts:
       - cmake/latest/stable
     build-environment:
       - PATH: /snap/bin:$PATH
+      - LDFLAGS: "${LDFLAGS:+$LDFLAGS }-lharfbuzz"
     stage-packages:
       - libuv1
       - libglx-mesa0
