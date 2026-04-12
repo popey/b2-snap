@@ -13,28 +13,26 @@ confinement: strict
 compression: lzo
 
 layout:
-#  /usr/share/drirc.d:
-#    bind: $SNAP/usr/share/drirc.d
-  /usr/lib/x86_64-linux-gnu/dri:
-    bind: $SNAP/usr/lib/x86_64-linux-gnu/dri
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/dri:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/dri
   /usr/share/vulkan:
     bind: $SNAP/usr/share/vulkan
-  /usr/lib/x86_64-linux-gnu/libvulkan_intel.so:
-    bind-file: $SNAP/usr/lib/x86_64-linux-gnu/libvulkan_intel.so
-  /usr/lib/x86_64-linux-gnu/libvulkan_lvp.so:
-    bind-file: $SNAP/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so
-  /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so:
-    bind-file: $SNAP/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_intel.so:
+    bind-file: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_intel.so
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_lvp.so:
+    bind-file: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_lvp.so
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_radeon.so:
+    bind-file: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libvulkan_radeon.so
 
 apps:
   b2:
     command: b2
     extensions: [gnome]
     environment:
-      GTK_PATH: $SNAP/lib/gtk-2.0
+      GTK_PATH: $SNAP/lib/gtk-4.0
       GTK_DATA_PREFIX: $SNAP
       XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS
-      VK_ICD_FILENAMESr: /var/lib/snapd/lib/vulkan/icd.d/nvidia_icd.json:$SNAP/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:$SNAP/usr/share/vulkan/icd.d/intel_icd.x86_64.json
+      VK_ICD_FILENAMESr: /var/lib/snapd/lib/vulkan/icd.d/nvidia_icd.json:$SNAP/usr/share/vulkan/icd.d/radeon_icd.$SNAP_ARCH.json:$SNAP/usr/share/vulkan/icd.d/intel_icd.$SNAP_ARCH.json
     plugs:
       - opengl
       - audio-playback
@@ -85,7 +83,7 @@ parts:
       ninja
       cp ./src/b2/b2 $CRAFT_PART_INSTALL
       cp -a ./src/b2/assets $SNAPCRAFT_PART_INSTALL
-      mkdir -p $CRAFT_PART_INSTALL/lib/gtk-2.0
+      mkdir -p $CRAFT_PART_INSTALL/lib/gtk-4.0
       mkdir -p $CRAFT_PART_INSTALL/share/themes
       mkdir -p $CRAFT_PART_INSTALL/share/icons
     build-snaps:
@@ -95,23 +93,18 @@ parts:
     stage-packages:
       - libuv1
       - libglx-mesa0
-      # - libbrotli1
-      # - libcaca0
-      # - libtheora0
       - libgssapi-krb5-2
       - libicu74
       - libsphinxbase3
-      # - libmfx1
       - libcurl4
-      # - ffmpeg
       - libasn1-8-heimdal
       - libatk1.0-0
-      # - libbrotli1
       - libcurl3-gnutls
       - libdatrie1
       - libgdk-pixbuf2.0-0
-      # - libgssapi3-heimdal
-      - libgtk2.0-0
+      - libgtk-4-1
+      - libharfbuzz0b
+      - libharfbuzz-icu0
       - libhcrypto5t64-heimdal
       - libheimbase1-heimdal
       - libheimntlm0-heimdal
@@ -133,12 +126,11 @@ parts:
       - libxcomposite1
       - libfribidi0
       - libglx-mesa0
-      # - mesa-va-drivers
       - libsdl2-2.0-0
     build-packages:
       - libcurl4-gnutls-dev
       - uuid-dev
-      - libgtk2.0-dev
+      - libgtk-4-dev
       - libgl1-mesa-dev
       - libpulse-dev
       - libgles2-mesa-dev
@@ -149,4 +141,3 @@ parts:
       - libsdl2-dev
       - libsdl2-net-dev
       - libuv1-dev
-
