@@ -90,7 +90,7 @@ parts:
       - cmake/latest/stable
     build-environment:
       - PATH: /snap/bin:$PATH
-      - LDFLAGS: "${LDFLAGS:+$LDFLAGS }-L/snap/gnome-46-2404-sdk/current/usr/lib/x86_64-linux-gnu -lharfbuzz"
+      - LDFLAGS: "${LDFLAGS:+$LDFLAGS }-L/snap/gnome-46-2404-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR -lharfbuzz"
     stage-packages:
       - libuv1
       - libglx-mesa0
