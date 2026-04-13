@@ -77,7 +77,7 @@ parts:
       git submodule init
       git submodule update
       sed -i 's|RMT_ENABLED=1|RMT_ENABLED=0|g' submodules/CMakeLists.txt
-      make init
+      make init RELEASE_MODE=1
       craftctl set version=$(git describe --tags | cut -d- -f2-4 )
       cd build/r.linux
       ninja
