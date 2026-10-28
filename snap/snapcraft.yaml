@@ -1,6 +1,6 @@
 name: b2
 base: core24
-adopt-info: b2
+version: '20260322-193052-51e70d7'
 summary: b2 BBC Micro Emulator
 description: |
   A cross-platform BBC Micro emulator. Use your Linux PC to play your old
@@ -66,6 +66,7 @@ parts:
   b2:
     plugin: make
     source: https://github.com/tom-seddon/b2.git
+    source-tag: b2-20260322-193052-51e70d7
     override-pull: |
       craftctl default
       head -n5 src/b2/misc.cpp
@@ -78,11 +79,10 @@ parts:
       git submodule update
       sed -i 's|RMT_ENABLED=1|RMT_ENABLED=0|g' submodules/CMakeLists.txt
       make init RELEASE_MODE=1
-      craftctl set version=$(git describe --tags | cut -d- -f2-4 )
       cd build/r.linux
       ninja
       cp ./src/b2/b2 $CRAFT_PART_INSTALL
-      cp -a ./src/b2/assets $SNAPCRAFT_PART_INSTALL
+      cp -a ./src/b2/assets $CRAFT_PART_INSTALL
       mkdir -p $CRAFT_PART_INSTALL/lib/gtk-4.0
       mkdir -p $CRAFT_PART_INSTALL/share/themes
       mkdir -p $CRAFT_PART_INSTALL/share/icons
