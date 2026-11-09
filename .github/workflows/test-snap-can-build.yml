@@ -1,4 +1,4 @@
-name: 🧪 Test snap can be built
+name: 🧪 Build and smoke test snap
 
 on:
   push:
@@ -7,32 +7,171 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: 🔨 Build snap
+    runs-on: ubuntu-24.04
+
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Build snap
         uses: snapcore/action-build@v1
-        id: snapcraft
+        id: build
+        with:
+          snapcraft-args: --use-lxd
 
       - name: Show log on build failure
-        if: ${{ failure() }}
-        run: |
-          cat /home/runner/.local/state/snapcraft/log/snapcraft*.log
-          exit 1
+        if: failure()
+        run: cat /home/runner/.local/state/snapcraft/log/snapcraft*.log
 
       - name: Review snap
         uses: diddlesnaps/snapcraft-review-action@v1
         with:
-          snap: ${{ steps.snapcraft.outputs.snap }}
+          snap: ${{ steps.build.outputs.snap }}
           isClassic: 'false'
 
-      - name: Upload artifacts
+      - name: Upload snap artifact
+        if: always() && steps.build.outputs.snap != ''
         uses: actions/upload-artifact@v4
         with:
           name: snap
-          path: ${{ steps.snapcraft.outputs.snap }}
+          path: ${{ steps.build.outputs.snap }}
+          retention-days: 7
+
+  smoke-test:
+    name: 💨 Smoke test (launch + screenshot)
+    runs-on: ubuntu-24.04
+    needs: build
+    # Use ghvmctl's supported guest default, as in the other graphical snaps.
+    # Its current input tooling requires newer packages than Ubuntu 24.04 ships.
+
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download snap artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: snap
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup LXD
+        uses: canonical/setup-lxd@v0.1.1
+
+      - name: Setup ghvmctl
+        run: |
+          sudo snap install ghvmctl
+          sudo snap connect ghvmctl:lxd lxd:lxd
+
+      - name: Prepare VM
+        id: vm
+        timeout-minutes: 15
+        run: ghvmctl prepare
+
+      - name: Install snap into VM
+        run: |
+          shopt -s nullglob
+          snaps=(*.snap)
+          test "${#snaps[@]}" -eq 1
+          SNAP_FILE=${snaps[0]}
+          echo "Pushing $SNAP_FILE into VM..."
+          VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
+          lxc file push "$SNAP_FILE" "local:$VM_NAME/home/ubuntu/$SNAP_FILE"
+          ghvmctl exec sudo snap install --dangerous "/home/ubuntu/$SNAP_FILE"
+          expected=$(python3 -c 'import re; print(re.search(r"^version: .([^\n]+).$", open("snap/snapcraft.yaml").read(), re.M)[1])')
+          installed=$(ghvmctl exec snap list b2 --unicode=never | awk 'NR == 2 {print $2}')
+          test "$installed" = "$expected"
+
+      - name: Prepare desktop checks
+        run: |
+          ghvmctl exec sudo apt-get install -y xdotool x11-utils python3-pil
+          VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
+          lxc file push scripts/check-window.py "local:$VM_NAME/home/ubuntu/check-window.py"
+          lxc file push scripts/render-check.py "local:$VM_NAME/home/ubuntu/render-check.py"
+          printf '%s\n' '{"package":{"name":"b2","desktop_title":"b2","desktop_decorated":true}}' > /tmp/input.json
+          lxc file push /tmp/input.json "local:$VM_NAME/home/ubuntu/input.json"
+          ghvmctl exec sudo chown ubuntu:ubuntu /home/ubuntu/input.json
+
+      - name: Check rendered launch, survival and reopen
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
+          for attempt in 1 2; do
+            ghvmctl snap-run b2
+            ghvmctl exec python3 /home/ubuntu/check-window.py
+            rendered=false
+            for retry in {1..30}; do
+              ghvmctl snap-is-running b2
+              if ghvmctl screenshot-window && ghvmctl exec python3 /home/ubuntu/render-check.py; then
+                rendered=true
+                break
+              fi
+              sleep 10
+            done
+            test "$rendered" = true
+            ghvmctl snap-is-running b2
+            lxc file pull "local:$VM_NAME/home/ubuntu/window.json" "artifacts/window-$attempt.json"
+            lxc file pull "local:$VM_NAME/home/ubuntu/render.json" "artifacts/render-$attempt.json"
+            cp "$HOME/ghvmctl-screenshots/screenshot-window.png" "artifacts/window-$attempt.png"
+            ghvmctl screenshot-full
+            ghvmctl snap-terminate b2
+          done
+
+      - name: Capture failure desktop
+        if: failure() && steps.vm.outcome == 'success'
+        continue-on-error: true
+        run: ghvmctl screenshot-full
+
+      - name: Collect application diagnostics
+        if: always() && steps.vm.outcome == 'success'
+        run: |
+          mkdir -p artifacts
+          ghvmctl exec cat /home/ubuntu/b2.log > artifacts/application.log 2>&1 || true
+          ghvmctl exec sudo snap connections b2 > artifacts/connections.log 2>&1 || true
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-logs
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-screenshots
+          path: ~/ghvmctl-screenshots/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summarize smoke test
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          echo "Desktop smoke test: $RESULT. See smoke-test-screenshots and smoke-test-logs artifacts for evidence." >> "$GITHUB_STEP_SUMMARY"
