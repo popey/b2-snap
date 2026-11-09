@@ -240,11 +240,12 @@ jobs:
           ghvmctl exec cat /home/ubuntu/b2.log > artifacts/application.log 2>&1 || true
           ghvmctl exec sudo snap connections b2 > artifacts/connections.log 2>&1 || true
           ghvmctl exec xprop -root _NET_CLIENT_LIST > artifacts/windows.log 2>&1 || true
+          ghvmctl exec sh -c 'for wid in $(xprop -root _NET_CLIENT_LIST | grep -oE "0x[0-9a-fA-F]+"); do echo "WINDOW $wid"; xprop -id "$wid"; xwininfo -id "$wid"; xdotool getwindowgeometry --shell "$wid"; done' > artifacts/window-properties.log 2>&1 || true
           ghvmctl exec printenv SDL_VIDEODRIVER > artifacts/display-backend.log 2>&1 || true
           python3 - <<'PY'
           import json
           from pathlib import Path
-          for name in ('application.log', 'connections.log', 'windows.log'):
+          for name in ('application.log', 'connections.log', 'windows.log', 'window-properties.log', 'display-backend.log'):
               print(json.dumps({'file': name, 'text': (Path('artifacts') / name).read_bytes()[:131072].decode('utf-8', errors='replace')}))
           PY
 
