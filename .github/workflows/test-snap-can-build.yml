@@ -6,12 +6,44 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      diagnostics-run:
+        description: 'Read retained smoke-test logs from this repository run; leave empty for build/test'
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
+  diagnostics:
+    name: Read retained desktop diagnostics
+    if: github.event_name == 'workflow_dispatch' && inputs.diagnostics-run != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Download retained diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          name: smoke-test-logs
+          run-id: ${{ inputs.diagnostics-run }}
+          github-token: ${{ github.token }}
+          path: diagnostics
+      - name: Print bounded diagnostic text
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('application.log', 'connections.log', 'windows.log'):
+              path = Path('diagnostics') / name
+              if path.is_file():
+                  print(json.dumps({'file': name, 'text': path.read_bytes()[:131072].decode('utf-8', errors='replace')}))
+          PY
+
   build:
+    if: github.event_name != 'workflow_dispatch' || inputs.diagnostics-run == ''
     name: 🔨 Build snap
     runs-on: ubuntu-24.04
 
@@ -150,6 +182,13 @@ jobs:
           mkdir -p artifacts
           ghvmctl exec cat /home/ubuntu/b2.log > artifacts/application.log 2>&1 || true
           ghvmctl exec sudo snap connections b2 > artifacts/connections.log 2>&1 || true
+          ghvmctl exec xprop -root _NET_CLIENT_LIST > artifacts/windows.log 2>&1 || true
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('application.log', 'connections.log', 'windows.log'):
+              print(json.dumps({'file': name, 'text': (Path('artifacts') / name).read_bytes()[:131072].decode('utf-8', errors='replace')}))
+          PY
 
       - name: Upload diagnostics
         if: always()
