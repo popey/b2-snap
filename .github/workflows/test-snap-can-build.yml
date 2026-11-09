@@ -24,7 +24,27 @@ jobs:
     permissions:
       actions: read
     steps:
+      - name: Discover retained diagnostic artifacts
+        id: available
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.diagnostics-run }}
+        run: |
+          [[ "$RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          names=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .name')
+          logs=false
+          screenshots=false
+          while IFS= read -r name; do
+            case "$name" in
+              smoke-test-logs) logs=true ;;
+              smoke-test-screenshots) screenshots=true ;;
+            esac
+          done <<< "$names"
+          echo "logs=$logs" >> "$GITHUB_OUTPUT"
+          echo "screenshots=$screenshots" >> "$GITHUB_OUTPUT"
+          echo "Available diagnostics: logs=$logs, screenshots=$screenshots"
       - name: Download retained diagnostics
+        if: steps.available.outputs.logs == 'true'
         uses: actions/download-artifact@v4
         with:
           name: smoke-test-logs
@@ -36,12 +56,13 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          for name in ('application.log', 'connections.log', 'windows.log'):
+          for name in ('application.log', 'connections.log', 'windows.log', 'display-backend.log'):
               path = Path('diagnostics') / name
               if path.is_file():
                   print(json.dumps({'file': name, 'text': path.read_bytes()[:131072].decode('utf-8', errors='replace')}))
           PY
       - name: Download retained desktop screenshots
+        if: steps.available.outputs.screenshots == 'true'
         uses: actions/download-artifact@v4
         with:
           name: smoke-test-screenshots
@@ -49,6 +70,7 @@ jobs:
           github-token: ${{ github.token }}
           path: screenshots
       - name: Print desktop preview for inspection
+        if: hashFiles('screenshots/screenshot-screen.png') != ''
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pil
@@ -111,7 +133,7 @@ jobs:
     # Use ghvmctl's supported guest default, as in the other graphical snaps.
     # Its current input tooling requires newer packages than Ubuntu 24.04 ships.
 
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -164,6 +186,8 @@ jobs:
           # The decoration check uses X11 window/frame properties. Select the
           # matching SDL test backend in this disposable guest explicitly.
           ghvmctl exec systemctl --user set-environment SDL_VIDEODRIVER=x11
+          # ghvmctl exec itself launches through systemd-run --user, so this
+          # checks the inherited environment used by the application launcher.
           test "$(ghvmctl exec printenv SDL_VIDEODRIVER)" = x11
           VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
           lxc file push scripts/check-window.py "local:$VM_NAME/home/ubuntu/check-window.py"
@@ -173,16 +197,19 @@ jobs:
           ghvmctl exec sudo chown ubuntu:ubuntu /home/ubuntu/input.json
 
       - name: Check rendered launch, survival and reopen
-        timeout-minutes: 15
+        # Two separately bounded ten-minute launches plus collection overhead.
+        timeout-minutes: 25
         run: |
           set -euo pipefail
           mkdir -p artifacts
           VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
-          for attempt in 1 2; do
+          check_launch() {
+            local attempt=$1 VM_NAME=$2
             ghvmctl snap-run b2
             ghvmctl exec python3 /home/ubuntu/check-window.py
-            rendered=false
-            for retry in {1..30}; do
+            local rendered=false
+            local deadline=$((SECONDS + 300))
+            while (( SECONDS < deadline )); do
               ghvmctl snap-is-running b2
               if ghvmctl screenshot-window && ghvmctl exec python3 /home/ubuntu/render-check.py; then
                 rendered=true
@@ -197,6 +224,10 @@ jobs:
             cp "$HOME/ghvmctl-screenshots/screenshot-window.png" "artifacts/window-$attempt.png"
             ghvmctl screenshot-full
             ghvmctl snap-terminate b2
+          }
+          export -f check_launch
+          for attempt in 1 2; do
+            timeout --kill-after=10s 10m bash -euo pipefail -c 'check_launch "$@"' _ "$attempt" "$VM_NAME"
           done
 
       - name: Capture failure desktop
@@ -215,7 +246,7 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          for name in ('application.log', 'connections.log', 'windows.log'):
+          for name in ('application.log', 'connections.log', 'windows.log', 'display-backend.log'):
               print(json.dumps({'file': name, 'text': (Path('artifacts') / name).read_bytes()[:131072].decode('utf-8', errors='replace')}))
           PY
 

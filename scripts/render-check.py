@@ -13,8 +13,8 @@ def nonblank(image):
     # Ignore borders, title bars, shadows and transparent screenshot padding.
     center = image.convert('RGB').crop((width // 5, height // 5, width * 4 // 5, height * 4 // 5))
     extrema = center.getextrema()
-    colors = center.getcolors(maxcolors=32)
-    return max(high - low for low, high in extrema) > 30 and (colors is None or len(colors) > 8)
+    # Monochrome emulator frames can contain just black and white pixels.
+    return max(high - low for low, high in extrema) > 30
 
 
 def main():
