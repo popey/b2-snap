@@ -197,6 +197,7 @@ jobs:
           VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
           lxc file push scripts/check-window.py "local:$VM_NAME/home/ubuntu/check-window.py"
           lxc file push scripts/render-check.py "local:$VM_NAME/home/ubuntu/render-check.py"
+          lxc file push scripts/window-debug.py "local:$VM_NAME/home/ubuntu/window-debug.py"
           printf '%s\n' '{"package":{"name":"b2","desktop_title":"b2","desktop_decorated":true,"desktop_backend":"sdl-x11"}}' > /tmp/input.json
           lxc file push /tmp/input.json "local:$VM_NAME/home/ubuntu/input.json"
           ghvmctl exec sudo chown ubuntu:ubuntu /home/ubuntu/input.json
@@ -240,7 +241,7 @@ jobs:
           ghvmctl exec cat /home/ubuntu/b2.log > artifacts/application.log 2>&1 || true
           ghvmctl exec sudo snap connections b2 > artifacts/connections.log 2>&1 || true
           ghvmctl exec xprop -root _NET_CLIENT_LIST > artifacts/windows.log 2>&1 || true
-          ghvmctl exec sh -c 'for wid in $(xprop -root _NET_CLIENT_LIST | grep -oE "0x[0-9a-fA-F]+"); do echo "WINDOW $wid"; xprop -id "$wid" _NET_WM_NAME WM_NAME WM_CLASS _NET_FRAME_EXTENTS _GTK_FRAME_EXTENTS WM_STATE _NET_WM_STATE _MOTIF_WM_HINTS; xwininfo -id "$wid"; xdotool getwindowgeometry --shell "$wid"; done' > artifacts/window-properties.log 2>&1 || true
+          ghvmctl exec python3 /home/ubuntu/window-debug.py > artifacts/window-properties.log 2>&1 || true
           ghvmctl exec printenv SDL_VIDEODRIVER > artifacts/display-backend.log 2>&1 || true
           python3 - <<'PY'
           import json
