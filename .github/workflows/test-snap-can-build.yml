@@ -161,10 +161,14 @@ jobs:
       - name: Prepare desktop checks
         run: |
           ghvmctl exec sudo apt-get install -y xdotool x11-utils python3-pil
+          # The decoration check uses X11 window/frame properties. Select the
+          # matching SDL test backend in this disposable guest explicitly.
+          ghvmctl exec systemctl --user set-environment SDL_VIDEODRIVER=x11
+          test "$(ghvmctl exec printenv SDL_VIDEODRIVER)" = x11
           VM_NAME=$(ghvmctl exec hostname | tr -d '[:space:]')
           lxc file push scripts/check-window.py "local:$VM_NAME/home/ubuntu/check-window.py"
           lxc file push scripts/render-check.py "local:$VM_NAME/home/ubuntu/render-check.py"
-          printf '%s\n' '{"package":{"name":"b2","desktop_title":"b2","desktop_decorated":true}}' > /tmp/input.json
+          printf '%s\n' '{"package":{"name":"b2","desktop_title":"b2","desktop_decorated":true,"desktop_backend":"sdl-x11"}}' > /tmp/input.json
           lxc file push /tmp/input.json "local:$VM_NAME/home/ubuntu/input.json"
           ghvmctl exec sudo chown ubuntu:ubuntu /home/ubuntu/input.json
 
@@ -207,6 +211,7 @@ jobs:
           ghvmctl exec cat /home/ubuntu/b2.log > artifacts/application.log 2>&1 || true
           ghvmctl exec sudo snap connections b2 > artifacts/connections.log 2>&1 || true
           ghvmctl exec xprop -root _NET_CLIENT_LIST > artifacts/windows.log 2>&1 || true
+          ghvmctl exec printenv SDL_VIDEODRIVER > artifacts/display-backend.log 2>&1 || true
           python3 - <<'PY'
           import json
           from pathlib import Path
