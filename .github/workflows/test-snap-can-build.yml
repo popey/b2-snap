@@ -1,4 +1,4 @@
-name: 🧪 Build and smoke test snap
+name: Diagnose retained b2 artifact (not PR acceptance)
 
 on:
   push:
@@ -67,7 +67,7 @@ jobs:
           PY
 
   build:
-    if: github.event_name != 'workflow_dispatch' || inputs.diagnostics-run == ''
+    if: ${{ false }}
     name: 🔨 Build snap
     runs-on: ubuntu-24.04
 
@@ -105,7 +105,11 @@ jobs:
           retention-days: 7
 
   smoke-test:
-    name: 💨 Smoke test (launch + screenshot)
+    name: Diagnose retained b2 with explicit SDL X11
+    if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.diagnostics-run == '' }}
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-24.04
     needs: build
     # Use ghvmctl's supported guest default, as in the other graphical snaps.
@@ -120,10 +124,30 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Verify retained artifact and identical recipe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/popey/b2-snap/actions/artifacts/13644414891 > /tmp/retained-artifact.json
+          gh api 'repos/popey/b2-snap/contents/snap/snapcraft.yaml?ref=b2bee005e552ae5bc2109585efd075c450e0bbce' -H 'Accept: application/vnd.github.raw+json' > /tmp/retained-recipe.yaml
+          cmp snap/snapcraft.yaml /tmp/retained-recipe.yaml
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a = json.loads(Path('/tmp/retained-artifact.json').read_text())
+          assert a['id'] == 13644414891 and a['name'] == 'snap' and not a['expired']
+          assert a['digest'] == 'sha256:325bd9bfaf7f24673f3972fccdc9aaab68fba8eb12f369302c822be6b548cece'
+          assert a['workflow_run']['id'] == 42548174124
+          assert a['workflow_run']['head_sha'] == 'b2bee005e552ae5bc2109585efd075c450e0bbce'
+          print('Retained artifact identity and unchanged recipe verified; diagnostic only, not current-main approval.')
+          PY
+
       - name: Download snap artifact
         uses: actions/download-artifact@v4
         with:
           name: snap
+          run-id: 42548174124
+          github-token: ${{ github.token }}
 
       - name: Enable KVM
         run: |
