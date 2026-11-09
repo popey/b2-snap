@@ -18,8 +18,10 @@ def matching_windows(package):
     assert window_class or title, 'Window selector must be configured'
     selector = ['--class', '^' + re.escape(window_class) + '$'] if window_class else ['--name', re.escape(title)]
     windows = run('xdotool', 'search', '--onlyvisible', *selector).stdout.split()
-    if not windows and title and not window_class:
+    if title and not window_class:
         # SDL can set only _NET_WM_NAME, which xdotool search can miss.
+        # GNOME's title-bar helper can also match before the real client, so
+        # inspect managed clients even when xdotool returned some windows.
         clients = run('xprop', '-root', '_NET_CLIENT_LIST').stdout
         for wid in re.findall(r'0x[0-9a-fA-F]+', clients):
             prop = run('xprop', '-id', wid, '_NET_WM_NAME').stdout
@@ -27,7 +29,7 @@ def matching_windows(package):
                 name = ast.literal_eval(prop.partition(' = ')[2].strip())
             except (ValueError, SyntaxError):
                 continue
-            if isinstance(name, str) and title in name:
+            if isinstance(name, str) and title in name and wid not in windows:
                 windows.append(wid)
     return windows
 
