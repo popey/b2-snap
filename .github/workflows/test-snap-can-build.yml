@@ -41,6 +41,28 @@ jobs:
               if path.is_file():
                   print(json.dumps({'file': name, 'text': path.read_bytes()[:131072].decode('utf-8', errors='replace')}))
           PY
+      - name: Download retained desktop screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: smoke-test-screenshots
+          run-id: ${{ inputs.diagnostics-run }}
+          github-token: ${{ github.token }}
+          path: screenshots
+      - name: Print desktop preview for inspection
+        run: |
+          python3 - <<'PY'
+          import base64
+          import io
+          import json
+          from pathlib import Path
+          from PIL import Image
+          path = Path('screenshots/screenshot-screen.png')
+          with Image.open(path) as image:
+              image.thumbnail((960, 720))
+              output = io.BytesIO()
+              image.convert('RGB').save(output, format='JPEG', quality=75)
+          print(json.dumps({'desktop_preview_jpeg': base64.b64encode(output.getvalue()).decode()}))
+          PY
 
   build:
     if: github.event_name != 'workflow_dispatch' || inputs.diagnostics-run == ''
