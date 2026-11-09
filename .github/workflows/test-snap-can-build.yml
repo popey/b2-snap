@@ -50,6 +50,7 @@ jobs:
           path: screenshots
       - name: Print desktop preview for inspection
         run: |
+          sudo apt-get update
           sudo apt-get install -y python3-pil
           /usr/bin/python3 - <<'PY'
           import base64
